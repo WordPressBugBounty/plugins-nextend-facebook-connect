@@ -3,8 +3,8 @@ Contributors: nextendweb
 Tags: social login, facebook, google, twitter, x, linkedin, register, login, social, nextend facebook connect, social sign in
 Donate link: https://www.facebook.com/nextendweb
 Requires at least: 4.9
-Tested up to: 6.6.2
-Stable tag: 3.1.15
+Tested up to: 6.7
+Stable tag: 3.1.16
 Requires PHP: 7.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -124,6 +124,13 @@ Using the Pro Addon you can set where the login buttons should appear on the Reg
 4. The Settings page of the Facebook provider.
 
 == Changelog ==
+
+= 3.1.16 =
+* Fix: Some third parties could end up breaking our "Page for register flow" and "OAuth redirect uri proxy page" select inputs
+* Fix: WordPress 6.7 compatibility - fix for "_load_textdomain_just_in_time was called incorrectly" notice
+
+* PRO: Fix: [Steam](https://nextendweb.com/nextend-social-login-docs/provider-steam/) - Invalid Params error
+
 
 = 3.1.15 =
 * Fix: Our BroadcastChannel could prevent the back/forward cache (or bfcache) from caching the page

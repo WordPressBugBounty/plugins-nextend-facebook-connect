@@ -20,9 +20,9 @@ require_once(NSL_PATH . '/compat.php');
 
 class NextendSocialLogin {
 
-    public static $version = '3.1.15';
+    public static $version = '3.1.16';
 
-    public static $nslPROMinVersion = '3.1.15';
+    public static $nslPROMinVersion = '3.1.16';
 
     public static $proxyPage = false;
 
@@ -149,6 +149,7 @@ class NextendSocialLogin {
 
     public static function init() {
         add_action('plugins_loaded', 'NextendSocialLogin::plugins_loaded');
+
         register_activation_hook(NSL_PATH_FILE, 'NextendSocialLogin::install');
 
         add_action('delete_user', 'NextendSocialLogin::delete_user');
@@ -169,7 +170,7 @@ class NextendSocialLogin {
             ),
             'licenses'                         => array(),
             'terms_show'                       => 0,
-            'terms'                            => __('By clicking Register, you accept our <a href="#privacy_policy_url" target="_blank">Privacy Policy</a>', 'nextend-facebook-connect'),
+            'terms'                            => '',
             'store_name'                       => 1,
             'store_email'                      => 1,
             'avatar_store'                     => 1,
@@ -565,6 +566,25 @@ class NextendSocialLogin {
             }
 
         }
+    }
+
+    public static function getDefaultPrivacyTerms() {
+        return __('By clicking Register, you accept our <a href="#privacy_policy_url" target="_blank">Privacy Policy</a>', 'nextend-facebook-connect');
+    }
+
+    public static function getPrivacyTerms() {
+        $terms = self::$settings->get('terms');
+        if ($terms === '') {
+            /**
+             * As of WordPress 6.7 the text domain should be registered on the 'init' action or later.
+             * Thus, we are not allowed, to define this string in the default settings on the plugins_loaded action anymore.
+             *
+             * @see NSLDEV-663
+             */
+            $terms = self::getDefaultPrivacyTerms();
+        }
+
+        return $terms;
     }
 
     public static function fixSocialRabbit() {
@@ -1461,32 +1481,38 @@ el.setAttribute("href",href+"redirect="+encodeURIComponent(window.location.href)
         return $proxyPage;
     }
 
-    public static function getFreePagesForRegisterFlow($pages) {
+    public static function getExcludedPagesForRegisterFlow() {
+        $pages = get_pages();
 
-        $availablePages = array();
+        $unavailablePageIDs = [];
+
         foreach ($pages as $page) {
             $post_states = array();
             $post_states = apply_filters('display_post_states', $post_states, $page);
-            if (NextendSocialLogin::getRegisterFlowPage() === $page->ID || !$post_states || (count($post_states) === 1 && array_intersect(self::$allowedPostStates, array_keys($post_states)))) {
-                $availablePages[] = $page;
+
+            if (NextendSocialLogin::getRegisterFlowPage() !== $page->ID && (!empty($post_states) && ((count($post_states) === 1 && !array_intersect(self::$allowedPostStates, array_keys($post_states))) || count($post_states) > 1))) {
+                $unavailablePageIDs[] = $page->ID;
             }
         }
 
-        return $availablePages;
+        return $unavailablePageIDs;
     }
 
-    public static function getFreePagesForOauthProxyPage($pages) {
+    public static function getExcludedPagesForOauthProxyPage() {
+        $pages = get_pages();
 
-        $availablePages = array();
+        $unavailablePageIDs = [];
+
         foreach ($pages as $page) {
             $post_states = array();
             $post_states = apply_filters('display_post_states', $post_states, $page);
-            if (NextendSocialLogin::getProxyPage() === $page->ID || !$post_states || (count($post_states) === 1 && array_intersect(self::$allowedPostStates, array_keys($post_states)))) {
-                $availablePages[] = $page;
+
+            if (NextendSocialLogin::getProxyPage() !== $page->ID && (!empty($post_states) && ((count($post_states) === 1 && !array_intersect(self::$allowedPostStates, array_keys($post_states))) || count($post_states) > 1))) {
+                $unavailablePageIDs[] = $page->ID;
             }
         }
 
-        return $availablePages;
+        return $unavailablePageIDs;
     }
 
     public static function is_register_allowed($isAllowed) {

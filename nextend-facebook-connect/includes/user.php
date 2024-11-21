@@ -781,7 +781,7 @@ class NextendSocialUser {
             $terms = $this->provider->settings->get('terms');
 
             if (empty($terms)) {
-                $terms = NextendSocialLogin::$settings->get('terms');
+                $terms = NextendSocialLogin::getPrivacyTerms();
             }
 
             $terms = __($terms, 'nextend-facebook-connect');
