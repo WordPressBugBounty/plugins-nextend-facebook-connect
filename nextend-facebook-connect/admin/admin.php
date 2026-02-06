@@ -859,27 +859,41 @@ class NextendSocialLoginAdmin {
                             $WPML_language_url_format = $sitepress->get_setting('language_negotiation_type');
                         }
 
-                        if ($WPML_language_url_format && $WPML_language_url_format == 3 && (!class_exists('\WPML\UrlHandling\WPLoginUrlConverter') || (class_exists('\WPML\UrlHandling\WPLoginUrlConverter') && (!get_option(\WPML\UrlHandling\WPLoginUrlConverter::SETTINGS_KEY, false) || (get_option(\WPML\UrlHandling\WPLoginUrlConverter::SETTINGS_KEY, false) && !$addArg))))) {
+
+                        $isWPLoginUrlConverterExists = class_exists('\WPML\UrlHandling\WPLoginUrlConverter');
+                        $allowLoginPageTranslation   = false;
+                        if ($isWPLoginUrlConverterExists) {
                             /**
-                             * We need to display the original redirect url when the
-                             * Language URL format is set to "Language name added as a parameter and:
-                             * -when the WPLoginUrlConverter class doesn't exists, since that case it is an old WPML version that can not translate the /wp-login.php page
-                             * -if "Login and registration pages - Allow translating the login and registration pages" is disabled
-                             * -if "Login and registration pages - Allow translating the login and registration pages" is enabled, but the provider doesn't support GET parameters in the redirect URL
+                             * We need to display the original redirect url when both the:
+                             * -"Login and registration pages - Allow translating the login and registration pages" option is disabled in WPML
+                             * -and the OAuth flow is handled over the WordPress default login page (/wp-login.php)
                              */
-                            return $redirectUrls;
-                        } else {
+
+                            $allowLoginPageTranslation = !!get_option(\WPML\UrlHandling\WPLoginUrlConverter::SETTINGS_KEY, false);
+
+                            if ($allowLoginPageTranslation && $WPML_language_url_format && $WPML_language_url_format == WPML_LANGUAGE_NEGOTIATION_TYPE_PARAMETER && !$addArg) {
+                                /**
+                                 * The "Login and registration pages - Allow translating the login and registration pages" option is enabled, however we still need to display the original redirect url when the:
+                                 * -the "Language URL format" is set to "Language name added as a parameter however the provider doesn't support GET parameters in the redirect URL
+                                 */
+                                $allowLoginPageTranslation = false;
+                            }
+                        }
+
+
+                        if ($allowLoginPageTranslation) {
                             global $wpml_url_converter;
                             /**
-                             * when the language URL format is set to "Different languages in directories" or "A different domain per language", then the Redirect URI will be different for each languages
-                             * Also when the language URL format is set to "Language name added as a parameter" and the "Login and registration pages - Allow translating the login and registration pages" setting is enabled, the urls will be different.
+                             * when:
+                             * -the language URL format is set to "Different languages in directories" or "A different domain per language", then the Redirect URI will be different for each languages
+                             * -the language URL format is set to "Language name added as a parameter" and the "Login and registration pages - Allow translating the login and registration pages" setting is enabled, the urls will be different.
                              */
                             if ($wpml_url_converter && method_exists($wpml_url_converter, 'convert_url')) {
 
 
                                 /**
                                  * When WPML is set to a non-default language in the backend, then the $wpml_url_converter->convert_url() function won't generate language specific URL
-                                 * if the provided language code is the same the the language code that the backend currently uses.
+                                 * if the provided language code is the same as the language code that the backend currently uses.
                                  */
                                 if ($originalLanguageCode && $defaultLanguageCode && $originalLanguageCode !== $defaultLanguageCode) {
                                     self::change_WPML_language_code($defaultLanguageCode, false);
@@ -898,7 +912,7 @@ class NextendSocialLoginAdmin {
                                     /**
                                      * we need to switch back to the original language if we had to switch earlier
                                      */
-                                    self::change_WPML_language_code($originalLanguageCode, true);
+                                    self::change_WPML_language_code(null, true);
                                     $languageCodeWasOverridden = false;
                                 }
                             }
@@ -954,7 +968,7 @@ class NextendSocialLoginAdmin {
                                 /**
                                  * we need to switch back to the original language if we had to switch earlier
                                  */
-                                self::change_WPML_language_code($originalLanguageCode, true);
+                                self::change_WPML_language_code(null, true);
                                 $languageCodeWasOverridden = false;
                             }
                         }
@@ -988,11 +1002,11 @@ class NextendSocialLoginAdmin {
     /**
      * Thins function can be used for changing the language code that WPML use during URL conversion.
      *
-     * @param string $languageCode - the language code that WPML will switch to
-     * @param bool   $restore      - if true, that means we shouldn't override the language for the
-     *                             get_language_from_url() function of WPML.
+     * @param ?string $languageCode - the language code that WPML will switch to
+     * @param bool    $restore      - if true, that means we shouldn't override the language for the
+     *                              get_language_from_url() function of WPML.
      */
-    public static function change_WPML_language_code($languageCode, $restore) {
+    public static function change_WPML_language_code(?string $languageCode, bool $restore) {
         global $sitepress;
 
         if ($sitepress) {
